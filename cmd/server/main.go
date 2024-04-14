@@ -4,6 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
+	"log/slog"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/jackc/pgx/stdlib"
@@ -12,10 +18,6 @@ import (
 	conf "github.com/tellmeac/expenses/internal/app/config"
 	"github.com/tellmeac/expenses/internal/app/storage"
 	"github.com/tellmeac/expenses/internal/pkg/config"
-	"log"
-	"log/slog"
-	"net/http"
-	"os"
 )
 
 func main() {
@@ -33,7 +35,7 @@ func main() {
 	}
 
 	logger.Info("Running migrations")
-	if err := RunMigrations(ctx, cfg); err != nil {
+	if err = RunMigrations(ctx, cfg); err != nil {
 		log.Fatalf("Migrations failed: %s", err)
 	}
 
@@ -53,8 +55,16 @@ func main() {
 	r.Get("/api/v1/expenses", application.ListExpenses)
 	r.Delete("/api/v1/expenses", application.DeleteExpenses)
 
+	// TODO: configuration and server pkg
+	srv := &http.Server{
+		ReadHeaderTimeout: time.Second,
+		Handler:           r,
+		Addr:              fmt.Sprintf(":%s", cfg.ListenPort),
+	}
+
 	logger.With("port", cfg.ListenPort).Info("Starting server")
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.ListenPort), r))
+
+	log.Fatal(srv.ListenAndServe())
 }
 
 func RunMigrations(ctx context.Context, cfg *conf.Config) error {

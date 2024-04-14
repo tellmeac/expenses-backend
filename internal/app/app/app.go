@@ -1,9 +1,13 @@
 package app
 
-import "github.com/tellmeac/expenses/internal/app/storage"
+import (
+	"github.com/tellmeac/expenses/internal/app/storage"
+)
 
-func New(s *storage.Storage) *App {
-	return &App{Storage: s}
+func New(st *storage.Storage) *App {
+	return &App{
+		Storage: st,
+	}
 }
 
 type App struct {

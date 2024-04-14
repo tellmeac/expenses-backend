@@ -2,13 +2,15 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/tellmeac/expenses/internal/app/storage/postgres"
-	"github.com/tellmeac/expenses/internal/pkg/types"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/tellmeac/expenses/internal/app/storage/postgres"
+	"github.com/tellmeac/expenses/internal/pkg/types"
 )
 
 func (a *App) AddExpense(w http.ResponseWriter, r *http.Request) {
@@ -37,25 +39,25 @@ func (a *App) AddExpense(w http.ResponseWriter, r *http.Request) {
 func (a *App) ListExpenses(w http.ResponseWriter, r *http.Request) {
 	limit, err := GetInt64FromQuery(r, "limit")
 	if err != nil {
-		BadRequest(w, fmt.Errorf("limit: %s", err))
+		BadRequest(w, fmt.Errorf("limit: %w", err))
 		return
 	}
 
 	offset, err := GetInt64FromQuery(r, "offset")
 	if err != nil {
-		BadRequest(w, fmt.Errorf("offset: %s", err))
+		BadRequest(w, fmt.Errorf("offset: %w", err))
 		return
 	}
 
 	dateFrom, err := GetDateFromQuery(r, "dateFrom")
 	if err != nil {
-		BadRequest(w, fmt.Errorf("dateFrom: %s", err))
+		BadRequest(w, fmt.Errorf("dateFrom: %w", err))
 		return
 	}
 
 	dateTo, err := GetDateFromQuery(r, "dateTo")
 	if err != nil {
-		BadRequest(w, fmt.Errorf("dateTo: %s", err))
+		BadRequest(w, fmt.Errorf("dateTo: %w", err))
 		return
 	}
 
@@ -82,7 +84,7 @@ func (a *App) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
 	for _, s := range idsStr {
 		id, err := strconv.ParseInt(s, 10, 0)
 		if err != nil {
-			BadRequest(w, fmt.Errorf("ids must contain integers separated by ','"))
+			BadRequest(w, errors.New("ids must contain integers separated by ','"))
 			return
 		}
 

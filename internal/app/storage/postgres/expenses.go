@@ -3,14 +3,15 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/tellmeac/expenses/internal/pkg/types"
-	"time"
 )
 
 type Expense struct {
-	ID          int64      `db:"id" json:"id	"`
+	ID          int64      `db:"id" json:"id"`
 	Cost        int64      `db:"cost" json:"cost"`
 	Date        types.Date `db:"date" json:"date"`
 	Title       string     `db:"title" json:"title"`
