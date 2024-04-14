@@ -1,0 +1,44 @@
+version: "3.7"
+
+services:
+  gateway:
+    container_name: expenses-gateway
+    image: "nginx:1.25.4"
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    links:
+      - backend:backend.expenses
+    restart: on-failure
+
+  backend:
+    container_name: expenses-backend
+    image: expenses-backend
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    volumes:
+      - ../config.yaml:/usr/src/app/config.yaml
+      - ../migrations:/usr/src/app/migrations
+    depends_on:
+      - postgres
+    restart: on-failure
+
+  postgres:
+    container_name: expenses-postgres
+    image: postgres:15.2-alpine
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=expenses
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: /usr/bin/pg_isready
+      interval: 3s
+      timeout: 12s
+      retries: 4
+    restart: on-failure
