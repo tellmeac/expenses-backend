@@ -1,0 +1,11 @@
+### Add expense
+POST localhost:80/api/v1/expenses
+Content-Type: application/json
+
+{
+  "date": "2024-01-01",
+  "title": "Наушники",
+  "description": "Запасная модель",
+  "catalog":  "техника",
+  "cost": 1000
+}

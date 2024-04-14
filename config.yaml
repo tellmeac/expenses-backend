@@ -1,0 +1,2 @@
+ListenPort: 8080
+DatabaseConnection: postgres://postgres:postgres@postgres:5432/expenses
