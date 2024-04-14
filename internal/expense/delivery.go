@@ -1,4 +1,4 @@
-package app
+package expense
 
 import (
 	"encoding/json"
@@ -9,9 +9,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tellmeac/expenses/internal/app/storage/postgres"
+	"github.com/jmoiron/sqlx"
+
 	"github.com/tellmeac/expenses/internal/pkg/types"
 )
+
+func New(db *sqlx.DB) *App {
+	return &App{
+		Repository: NewRepository(db),
+	}
+}
+
+type App struct {
+	Repository *Repository
+}
 
 func (a *App) AddExpense(w http.ResponseWriter, r *http.Request) {
 	var p struct {
@@ -27,7 +38,7 @@ func (a *App) AddExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := a.Storage.Expenses.Insert(r.Context(), p.Date, p.Title, p.Cost, p.Description, p.Catalog)
+	err := a.Repository.Insert(r.Context(), p.Date, p.Title, p.Cost, p.Description, p.Catalog)
 	if err != nil {
 		InternalError(w, err)
 		return
@@ -61,7 +72,7 @@ func (a *App) ListExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expenses, err := a.Storage.Expenses.List(r.Context(), postgres.ListParams{
+	expenses, err := a.Repository.List(r.Context(), ListParams{
 		DateFrom: &dateFrom,
 		DateTo:   &dateTo,
 		Offset:   offset,
@@ -91,7 +102,7 @@ func (a *App) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
 		ids = append(ids, id)
 	}
 
-	err := a.Storage.Expenses.MarkDeleted(r.Context(), ids...)
+	err := a.Repository.MarkDeleted(r.Context(), ids...)
 	if err != nil {
 		InternalError(w, err)
 		return

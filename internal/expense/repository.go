@@ -1,4 +1,4 @@
-package postgres
+package expense
 
 import (
 	"context"
@@ -9,6 +9,14 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/tellmeac/expenses/internal/pkg/types"
 )
+
+func NewRepository(db *sqlx.DB) *Repository {
+	return &Repository{db: db}
+}
+
+type Repository struct {
+	db *sqlx.DB
+}
 
 type Expense struct {
 	ID          int64      `db:"id" json:"id"`
@@ -21,15 +29,7 @@ type Expense struct {
 	DeletedAt   *time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
-func NewExpenses(db *sqlx.DB) *Expenses {
-	return &Expenses{db: db}
-}
-
-type Expenses struct {
-	db *sqlx.DB
-}
-
-func (e *Expenses) Insert(
+func (e *Repository) Insert(
 	ctx context.Context,
 	date types.Date,
 	title string,
@@ -59,7 +59,7 @@ type ListParams struct {
 	IsDeleted        bool
 }
 
-func (e *Expenses) List(ctx context.Context, p ListParams) ([]Expense, error) {
+func (e *Repository) List(ctx context.Context, p ListParams) ([]Expense, error) {
 	if p.Limit == 0 {
 		return []Expense{}, nil
 	}
@@ -87,12 +87,12 @@ func (e *Expenses) List(ctx context.Context, p ListParams) ([]Expense, error) {
 	return result, e.db.SelectContext(ctx, &result, sql, args...)
 }
 
-func (e *Expenses) MarkDeleted(ctx context.Context, ids ...int64) error {
+func (e *Repository) MarkDeleted(ctx context.Context, ids ...int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
 
-	sql, args, err := sqlx.In(`update public.expenses set is_deleted = true and deleted_at = now() where id in (?)`, ids)
+	sql, args, err := sqlx.In(`update public.expenses set is_deleted = true, deleted_at = now() where id in (?)`, ids)
 	if err != nil {
 		return fmt.Errorf("build sql: %w", err)
 	}

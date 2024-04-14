@@ -2,21 +2,21 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
 	"os"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/tellmeac/expenses/internal/expense"
+	"github.com/tellmeac/expenses/internal/pkg/server"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/tellmeac/expenses/internal/app/app"
-	conf "github.com/tellmeac/expenses/internal/app/config"
-	"github.com/tellmeac/expenses/internal/app/storage"
+	conf "github.com/tellmeac/expenses/internal/config"
 	"github.com/tellmeac/expenses/internal/pkg/config"
-	"github.com/tellmeac/expenses/internal/pkg/server"
 )
 
 func main() {
@@ -33,41 +33,35 @@ func main() {
 		log.Fatalf("Failed to parse config: %s", err)
 	}
 
+	db, err := sqlx.ConnectContext(ctx, "pgx", cfg.DatabaseConnection)
+	if err != nil {
+		log.Fatalf("Connect database: %s", err)
+	}
+
 	logger.Info("Running migrations")
-	if err = RunMigrations(ctx, cfg); err != nil {
+	if err = RunMigrations(ctx, db); err != nil {
 		log.Fatalf("Migrations failed: %s", err)
 	}
 
-	logger.Info("Initializing storage")
-	s, err := storage.New(ctx, cfg)
-	if err != nil {
-		log.Fatalf("Storage init failed: %s", err)
-	}
-
-	logger.Info("Initializing app")
-	application := app.New(s)
-
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-
-	r.Post("/api/v1/expenses", application.AddExpense)
-	r.Get("/api/v1/expenses", application.ListExpenses)
-	r.Delete("/api/v1/expenses", application.DeleteExpenses)
+	logger.Info("Initializing expenses")
+	expenses := expense.New(db)
 
 	srv := server.DefaultServer()
 	srv.Addr = fmt.Sprintf(":%s", cfg.ListenPort)
+
+	r := chi.NewRouter()
 	srv.Handler = r
+
+	r.Use(middleware.Logger)
+	r.Post("/api/v1/expenses", expenses.AddExpense)
+	r.Get("/api/v1/expenses", expenses.ListExpenses)
+	r.Delete("/api/v1/expenses", expenses.DeleteExpenses)
 
 	logger.With("port", cfg.ListenPort).Info("Starting server")
 
 	log.Fatal(srv.ListenAndServe())
 }
 
-func RunMigrations(ctx context.Context, cfg *conf.Config) error {
-	db, err := sql.Open("pgx", cfg.DatabaseConnection)
-	if err != nil {
-		return err
-	}
-
-	return goose.UpContext(ctx, db, "./migrations")
+func RunMigrations(ctx context.Context, db *sqlx.DB) error {
+	return goose.UpContext(ctx, db.DB, "./migrations")
 }

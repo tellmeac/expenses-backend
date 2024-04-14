@@ -14,4 +14,4 @@ Content-Type: application/json
 GET localhost:80/api/v1/expenses?limit=10&offset=0&dateFrom=2023-01-01&dateTo=2025-01-01
 
 ### Delete expenses
-DELETE localhost:80/api/v1/expenses?ids=1,2
+DELETE localhost:80/api/v1/expenses?ids=1,2,3
