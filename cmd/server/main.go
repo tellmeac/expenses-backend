@@ -51,6 +51,7 @@ func main() {
 
 	r.Post("/api/v1/expenses", application.AddExpense)
 	r.Get("/api/v1/expenses", application.ListExpenses)
+	r.Delete("/api/v1/expenses", application.DeleteExpenses)
 
 	logger.With("port", cfg.ListenPort).Info("Starting server")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.ListenPort), r))

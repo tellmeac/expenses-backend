@@ -2,10 +2,33 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
 type Date time.Time
+
+func (d *Date) Scan(src any) error {
+	switch t := src.(type) {
+	case time.Time:
+		*d = Date(t)
+	case *time.Time:
+		if t == nil {
+			return nil
+		}
+		*d = Date(*t)
+	case string:
+		v, err := ParseDate(t)
+		if err != nil {
+			return err
+		}
+		*d = v
+	default:
+		return fmt.Errorf("scan: unknown value for Date: %+v", src)
+	}
+
+	return nil
+}
 
 func (d *Date) Time() time.Time {
 	if d == nil {

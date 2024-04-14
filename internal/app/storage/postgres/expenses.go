@@ -6,15 +6,18 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/tellmeac/expenses/internal/pkg/types"
+	"time"
 )
 
 type Expense struct {
-	ID          int64  `db:"id"`
-	Cost        int64  `db:"cost"`
-	Date        string `db:"date"`
-	Title       string `db:"title"`
-	Catalog     string `db:"catalog"`
-	Description string `db:"description"`
+	ID          int64      `db:"id" json:"id	"`
+	Cost        int64      `db:"cost" json:"cost"`
+	Date        types.Date `db:"date" json:"date"`
+	Title       string     `db:"title" json:"title"`
+	Catalog     string     `db:"catalog" json:"catalog"`
+	Description string     `db:"description" json:"description"`
+	IsDeleted   bool       `db:"is_deleted" json:"is_deleted"`
+	DeletedAt   *time.Time `db:"deleted_at" json:"deleted_at"`
 }
 
 func NewExpenses(db *sqlx.DB) *Expenses {
@@ -52,6 +55,7 @@ values (:date, :title, :cost, :description, :catalog)
 type ListParams struct {
 	DateFrom, DateTo *types.Date
 	Offset, Limit    int64
+	IsDeleted        bool
 }
 
 func (e *Expenses) List(ctx context.Context, p ListParams) ([]Expense, error) {
@@ -59,9 +63,10 @@ func (e *Expenses) List(ctx context.Context, p ListParams) ([]Expense, error) {
 		return []Expense{}, nil
 	}
 
-	qb := squirrel.Select("id", "cost", "date", "title", "catalog", "description").
+	qb := squirrel.Select("id", "cost", "date", "title", "catalog", "description", "is_deleted", "deleted_at").
 		PlaceholderFormat(squirrel.Dollar).
 		From("public.expenses").
+		Where("is_deleted = ?", p.IsDeleted).
 		Limit(uint64(p.Limit)).Offset(uint64(p.Offset))
 
 	if p.DateFrom != nil {
@@ -78,6 +83,20 @@ func (e *Expenses) List(ctx context.Context, p ListParams) ([]Expense, error) {
 	}
 
 	var result []Expense
-
 	return result, e.db.SelectContext(ctx, &result, sql, args...)
+}
+
+func (e *Expenses) MarkDeleted(ctx context.Context, ids ...int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	sql, args, err := sqlx.In(`update public.expenses set is_deleted = true and deleted_at = now() where id in (?)`, ids)
+	if err != nil {
+		return fmt.Errorf("build sql: %w", err)
+	}
+	sql = e.db.Rebind(sql)
+
+	_, err = e.db.ExecContext(ctx, sql, args...)
+	return err
 }

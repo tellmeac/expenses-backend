@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (a *App) AddExpense(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +73,29 @@ func (a *App) ListExpenses(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, map[string]any{
 		"values": expenses,
 	})
+}
+
+func (a *App) DeleteExpenses(w http.ResponseWriter, r *http.Request) {
+	idsRaw := r.URL.Query().Get("ids")
+	idsStr := strings.Split(idsRaw, ",")
+	ids := make([]int64, 0, len(idsStr))
+	for _, s := range idsStr {
+		id, err := strconv.ParseInt(s, 10, 0)
+		if err != nil {
+			BadRequest(w, fmt.Errorf("ids must contain integers separated by ','"))
+			return
+		}
+
+		ids = append(ids, id)
+	}
+
+	err := a.Storage.Expenses.MarkDeleted(r.Context(), ids...)
+	if err != nil {
+		InternalError(w, err)
+		return
+	}
+
+	NoContent(w)
 }
 
 func BadRequest(w http.ResponseWriter, err error) {
