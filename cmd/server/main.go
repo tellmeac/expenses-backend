@@ -48,7 +48,9 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
 	r.Post("/api/v1/expenses", application.AddExpense)
+	r.Get("/api/v1/expenses", application.ListExpenses)
 
 	logger.With("port", cfg.ListenPort).Info("Starting server")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", cfg.ListenPort), r))
