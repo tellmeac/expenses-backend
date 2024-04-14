@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,6 +16,7 @@ import (
 	conf "github.com/tellmeac/expenses/internal/app/config"
 	"github.com/tellmeac/expenses/internal/app/storage"
 	"github.com/tellmeac/expenses/internal/pkg/config"
+	"github.com/tellmeac/expenses/internal/pkg/server"
 )
 
 func main() {
@@ -55,12 +54,9 @@ func main() {
 	r.Get("/api/v1/expenses", application.ListExpenses)
 	r.Delete("/api/v1/expenses", application.DeleteExpenses)
 
-	// TODO: configuration and server pkg
-	srv := &http.Server{
-		ReadHeaderTimeout: time.Second,
-		Handler:           r,
-		Addr:              fmt.Sprintf(":%s", cfg.ListenPort),
-	}
+	srv := server.DefaultServer()
+	srv.Addr = fmt.Sprintf(":%s", cfg.ListenPort)
+	srv.Handler = r
 
 	logger.With("port", cfg.ListenPort).Info("Starting server")
 
